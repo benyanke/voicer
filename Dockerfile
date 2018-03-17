@@ -1,28 +1,40 @@
 FROM php:7-fpm-alpine
 MAINTAINER Ben Yanke <ben@benyanke.com>
 
+# Install packages
 RUN apk --update add wget \
   curl \
   git \
   grep \
-  nginx \
   build-base \
   libmemcached-dev \
   libmcrypt-dev \
   libxml2-dev \
-  zlib-dev \
+  imagemagick-dev \
+  pcre-dev \
+  libtool \
+  make \
   autoconf \
+  g++ \
   cyrus-sasl-dev \
   libgsasl-dev \
   supervisor
 
-RUN docker-php-ext-install mysqli mbstring pdo pdo_mysql mcrypt tokenizer xml
-RUN pecl channel-update pecl.php.net && pecl install memcached && docker-php-ext-enable memcached
+# Install more packages
+RUN docker-php-ext-install mysqli mbstring pdo pdo_mysql tokenizer xml
+RUN pecl channel-update pecl.php.net \
+    && pecl install memcached \
+    && pecl install imagick \
+    && pecl install mcrypt-1.0.1 \
+    && docker-php-ext-enable memcached \
+    && docker-php-ext-enable imagick \
+    && docker-php-ext-enable mcrypt
 
+
+# Make webdir and clear caches
 RUN rm /var/cache/apk/* && \
     mkdir -p /var/www
 
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY supervisord.conf /etc/supervisord.conf
+COPY etc/supervisord-app.conf /etc/supervisord.conf
 
-ENTRYPOINT ["/usr/bin/supervisord", "-n", "-c",  "/etc/supervisord.conf"]
+ENTRYPOINT ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisord.conf"]
